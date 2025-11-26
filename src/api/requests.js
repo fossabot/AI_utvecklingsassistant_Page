@@ -29,6 +29,33 @@ async function send_prompts(messages, header) {
     });
 
     if (!response.ok) {
+        const data = await response.json();
+
+        return data;
+        /*throw new Error(`API request failed with status ${response.status}: ${response.statusText}
+            ${await response.text()}`);*/
+    }
+
+    const data = await response.json();
+    return data;
+
+}
+
+async function send_prompts_selected_mode(messages, mode) {
+
+    const mode_stringnify = {
+            "message": messages,
+            "mode": mode,
+        }
+    const response = await fetch_api(`LLM/mode`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(mode_stringnify)
+    });
+
+    if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}: ${response.statusText}
             ${await response.text()}`);
     }
@@ -57,7 +84,7 @@ async function create_room(room_name) {
             ${await response.text()}`);
     }
     
-    return data.message;
+    return data;
 
 }
 
@@ -100,4 +127,5 @@ export {
     create_room,
     fetch_rooms,
     fetch_room,
+    send_prompts_selected_mode
 }

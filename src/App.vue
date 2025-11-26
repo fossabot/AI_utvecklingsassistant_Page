@@ -1,6 +1,6 @@
 <template>
   <div id="app" class="full-page">
-    <div class="grid-chat-sidebar">  
+    <div  :class="themeClass" class="grid-chat-sidebar min-h-screen transition-colors duration-300">  
       <Side_bar @room-selected="handleRoomSelected" />
       <Chat_page  v-if="roomData" 
                     :room_name="roomData.name" 
@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { reactive, provide, computed, ref } from 'vue'
 import Chat_page from './components/chat_page.vue';
 import Side_bar from './components/side_bar.vue';
 
@@ -21,6 +21,23 @@ function handleRoomSelected(payload) {
   // payload contains { name, history }
   roomData.value = payload
 }
+
+// reactive theme state
+const theme = reactive({
+  dark: false
+})
+
+// toggle function
+function toggleTheme() {
+  theme.dark = !theme.dark
+}
+
+// computed class for body
+const themeClass = computed(() => (theme.dark ? 'dark' : 'light'))
+
+// provide theme to child components
+provide('theme', theme)
+provide('toggleTheme', toggleTheme)
 </script>
 
 <style scoped>
@@ -74,6 +91,24 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* base light theme */
+.light {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+/* dark theme */
+.dark {
+  background-color: #1a1a1a;
+  color: #f5f5f5;
+}
+
+/* smooth transition for color changes */
+body, .min-h-screen {
+  transition: background-color 0.3s, color 0.3s;
+}
+
 </style>
 
 
