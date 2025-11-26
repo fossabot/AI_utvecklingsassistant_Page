@@ -2,7 +2,6 @@
     <main class="main-content">
         <div class="chat-container p-4 rounded border dark:border-gray-600 transition-colors">
         <h2>AI assistant</h2>
-        <h3>Room: {{ props.room_name }}</h3>
 
         <div class="chat-box p-4 rounded space-y-4 transition-colors"  :class="theme.dark ? 'dark-chatbox' : 'light-chatbox'">
             <div v-for="(message, mIdx) in messages" :key="mIdx" :class="['message', message.sender, 'p-2 rounded text-message transition-colors']">
@@ -20,7 +19,7 @@
                         <span class="lang">{{ (block.lang || 'text').toUpperCase() }}</span>
                         <span class="title">{{ block.title }}</span>
                     </div>
-                    <button class="copy-btn" @click="copyWrapped(block)">Copy</button>
+                    <button class="copy-btn p-2 rounded text-message transition-colors" @click="copyWrapped(block)">Copy</button>
                     </div>
 
                     <pre class="code-block p-2 rounded code-message transition-colors" ><code v-html="block.highlighted"></code></pre>
@@ -35,6 +34,16 @@
             </div>
         </div>
 
+        <!-- Tag area above input -->
+        <div class="tag-area p-2 mb-3">
+          <div class="tag-list" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+            <span v-for="(t, idx) in tags" :key="t + idx" class="tag-pill" style="padding:6px 8px;background:#eef2ff;border-radius:12px;display:flex;align-items:center;gap:8px;">
+              <span>{{ t }}</span>
+              <button type="button" @click="removeTag(idx)" style="background:transparent;border:none;cursor:pointer;padding:0;font-size:16px;">✕</button>
+            </span>
+          </div>
+        </div>
+
         <form @submit.prevent="sendMessage" class="input-form">
             <input v-model="userInput" type="text" placeholder="Type your message..." required />
             <button type="submit">Send</button>
@@ -45,21 +54,17 @@
 </template>
 
 <script setup>
-import { ref, watch, inject } from 'vue'
+import { ref, inject, onMounted, onBeforeUnmount } from 'vue'
 
 import { send_prompts } from '@/api/requests'
 import { buildMessageFromLLM, copyWrapped } from '@/functions/code_block_handler.js'
 
 const messages = ref([])
 const userInput = ref('')
-const props = defineProps({
-  room_name: String,
-  room_history: Array
-})
+const tags = ref([])
 
 // sendMessage integrates with your existing send_prompts function
 async function sendMessage() {
-  //
   const original_text = userInput.value
 
   if (!original_text || !original_text.trim()) {
@@ -77,8 +82,9 @@ async function sendMessage() {
   userInput.value = ''
 
   try {
-    const response = await send_prompts([original_text], props.room_name)
-    // assume send_prompts returns a string; if it returns structured data adapt accordingly
+    // send message with explicit tags array to backend
+    const response = await send_prompts(original_text, tags.value)
+
     if (response.error) {
       alert('Error from server: ' + response.error)
     } else {
@@ -88,103 +94,32 @@ async function sendMessage() {
     }
   } catch (error) {
     console.error('Error sending message:', error)
-    messages.value.push({ sender: 'groq', text: 'Error: could not send message' })
+    messages.value.push({ sender: 'groq', blocks: [{ type: 'text', text: 'Error: could not send message' }] })
   }
-
-
 }
 
-/**
- * Sends user input as a message to the chat and processes the LLM's response.
- * - Validates input to prevent empty messages.
- * - Constructs and stores user message in chat history.
- * - Sends input to an external API via send_prompts().
- * - Handles API errors and formats LLM response for display.
- * - Assumes send_prompts() returns a string or structured data with 'text' field.
- * - Requires reactive 'messages' array and 'userInput' reference to chat input field.
- */
-/*async function sendMessage() {
-  // Get raw user input and trim whitespace
-  const original_text = userInput.value
-
-  // Early return if input is empty or whitespace-only
-  if (!original_text || !original_text.trim()) {
-    return
-  }
-
-  // Create user message object with sender: 'user'
-  const userMsg = { 
-    sender: 'user', 
-    blocks: [{ 
-      type: 'text',
-      text: original_text, 
-    }] 
-  }
-
-  // Add user message to chat history and clear input field
-  messages.value.push(userMsg)
-  userInput.value = ''
-
-  try {
-    // Send user message to LLM API (assumes send_prompts is a defined async function)
-    const response = await send_prompts([original_text], props.room_name)
-
-    // Handle server errors
-    if (response.error) {
-      alert('Error from server: ' + response.error)
-    } else {
-      // Extract text from response (string or nested object)
-      const textResponse = typeof response.message === 'string' 
-        ? response.message 
-        : (response.message.text || JSON.stringify(response.message))
-
-      // Format LLM response using helper function and add to chat
-      const llmMessage = buildMessageFromLLM(textResponse)
-      messages.value.push(llmMessage)
-    }
-  } catch (error) {
-    // Handle network/API errors
-    console.error('Error sending message:', error)
-    messages.value.push({ 
-      sender: 'groq', 
-      text: 'Error: could not send message' 
-    })
-  }
-}*/
-
-function loadHistory(history) {
-  messages.value = []
-  if (!Array.isArray(history)) return
-  history.forEach(element => {
-    const role = element.role || 'user'
-    if (role === 'user') {
-      messages.value.push({
-        sender: 'user',
-        blocks: [{ type: 'text', text: element.content || '' }]
-      })
-    } else {
-      // use buildMessageFromLLM to parse code blocks for assistant messages
-      const llmMsg = buildMessageFromLLM(element.content || '')
-      llmMsg.sender = role
-      messages.value.push(llmMsg)
-    }
-  })
+function removeTag(idx) {
+  tags.value.splice(idx, 1)
 }
 
-// inject the theme to respond to changes
+// listen for Quickmode + tags from sidebar via custom event
+function onModeApplied(e) {
+  const { tags: incomingTags } = e.detail || {}
+  if (Array.isArray(incomingTags)) {
+    tags.value = [...incomingTags]
+  }
+}
+
 const theme = inject('theme')
 
-// watch for changes to room_history and load immediately when component mounts / prop arrives
-watch(() => props.room_history, (newVal) => {
-  loadHistory(newVal)
-}, { immediate: true })
-
-// optional: clear messages when room_name changes (if you want)
-watch(() => props.room_name, () => {
-  // keep behavior: if new history arrives it will be loaded by the other watcher
-  messages.value = []
+// mount/unmount event listener
+onMounted(() => {
+  window.addEventListener('mode-applied', onModeApplied)
 })
 
+onBeforeUnmount(() => {
+  window.removeEventListener('mode-applied', onModeApplied)
+})
 </script>
 
 <style scoped>
@@ -311,5 +246,8 @@ watch(() => props.room_name, () => {
   text-align: center;
   font-style: italic;
 }
+
+.tag-pill { font-size:14px; }
+.mode-badge { margin-left:8px; padding:6px 10px; background:#e6f7ff; border-radius:12px; font-weight:600; }
 </style>
 

@@ -44,16 +44,6 @@ function guessLanguage(sample) {
   return 'text';
 }
 
-/*function guessLanguage(sample) {
-  const s = (sample || '').slice(0, 1000)
-  if (/^\s*<\w+/.test(s) || /<\/?html>/.test(s)) return 'html'
-  if (/\b(def |import |from |print\(|self\b)/.test(s)) return 'python'
-  if (/\b(function |const |let |var |=>)\b/.test(s)) return 'javascript'
-  if (/\b(public |class |System\.|void )\b/.test(s)) return 'java'
-  if (/\{[^}]*\}/.test(s) && /:\s*\w+/.test(s)) return 'json'
-  return 'text'
-}*/
-
 /**
  * Indents each line of the input text by the specified number of spaces.
  * @param {string} text - The text to be indented.
@@ -72,72 +62,94 @@ function indentLines(text, spaces) {
     .join('\n');
 }
 
-/*function indentLines(text, spaces) {
-  const pad = ' '.repeat(spaces)
-  return text.split('\n').map(l => pad + l).join('\n')
-}*/
-
+/**
+ * Wraps source code in appropriate language-specific template structure.
+ * 
+ * @param {string} langId - Language identifier (e.g., 'html', 'javascript', 'vue')
+ * @param {string} src - Source code to wrap
+ * @returns {string} - Code wrapped in appropriate template
+ * 
+ * Handles different language requirements:
+ * - HTML: Full document template with metadata
+ * - CSS: Adds descriptive comment
+ * - JavaScript: Auto-wraps non-module code in IIFE if needed
+ * - Vue: Creates minimal SFC structure while avoiding full tag parsing
+ * - Python/Java: Adds wrapper classes/functions if code isn't already structured
+ * - JSON: Pretty-prints with error handling
+ */
 function wrapCodeInTemplate(langId, src) {
+  // Clean source by trimming leading/trailing newlines
   const raw = (src || '').replace(/^\n+|\n+$/g, '')
+  
+  // Language-specific template handling
   switch ((langId || '').toLowerCase()) {
     case 'html':
     case 'markup':
-      return `<!doctype html>
-<html lang="en">
+      // Return full HTML5 template with indentation for body content
+      return `<!doctype html> <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Snippet</title>
   </head>
-  <body>
-${indentLines(raw, 4)}
-  </body>
+  <body> ${indentLines(raw, 4)}   </body>
 </html>`
+    
     case 'css':
-      return `/* CSS snippet */\n${raw}`
+      // Add descriptive comment to CSS snippet
+      return `/* CSS snippet */
+${raw}`
+    
     case 'javascript':
     case 'js':
+      // Return as-is if contains function/class/variable declarations
+      // Otherwise wrap in IIFE to prevent global scope pollution
       if (/\b(function|class|const |let |var |export |import )\b/.test(raw)) return raw
-      return `(function(){
-${indentLines(raw, 2)}
-})()`
+      return `(function(){ ${indentLines(raw, 2)} })()`
+    
     case 'vue':
-        // keep existing full SFC if the user provided it
-        if (/^<template[\s\S]*<\/template>/.test(raw)) return raw
-
-        // Avoid embedding SFC tag sequences directly in the source file (split them so the SFC parser doesn't see full tags)
-        return (
-          '<template>\n' +
-          '  <div>\n' +
-          indentLines(raw, 4) + '\n' +
-          '  </div>\n' +
-          '</' + 'template>\n\n' +
-          '<' + 'script setup>\n' +
-          '// add your logic here\n' +
-          '</' + 'script>\n\n' +
-          '<' + 'style scoped>\n' +
-          '/* styles */\n' +
-          '</' + 'style>'
-        )
+      // Preserve full SFC if user provided one
+      if (/^<template[\s\S]*<\/template>/.test(raw)) return raw
+      
+      // Create minimal SFC structure with split tags to avoid parsing issues
+      return (
+        '<template>\n' +
+        '  <div>\n' +
+        indentLines(raw, 4) + '\n' +
+        '  </div>\n' +
+        '</' + 'template>\n\n' +
+        '<' + 'script setup>\n' + 
+        '// add your logic here\n' +
+        '</' + 'script>\n\n' +
+        '<' + 'style scoped>\n' +
+        '/* styles */\n' +
+        '</' + 'style>'
+      )
+    
     case 'python':
+      // Return as-is if contains function/class definitions
+      // Otherwise wrap in main() function and entry point
       if (/^\s*(def |class )/m.test(raw)) return raw
-      return `def main():
-${indentLines(raw, 4)}
-
-if __name__ == '__main__':
+      return `def main(): ${indentLines(raw, 4)}
+  if __name__ == '__main__':
     main()`
+    
     case 'java':
+      // Return as-is if contains class declaration
+      // Otherwise wrap in Snippet class
       if (/\bclass\b/.test(raw)) return raw
-      return `public class Snippet {
-${indentLines(raw, 4)}
-}`
+      return `public class Snippet { ${indentLines(raw, 4)} }`
+    
     case 'json':
+      // Pretty-print JSON with error handling
       try {
         return JSON.stringify(JSON.parse(raw), null, 2)
       } catch (e) {
         return raw
       }
+    
     default:
+      // Return raw code if language not recognized
       return raw
   }
 }

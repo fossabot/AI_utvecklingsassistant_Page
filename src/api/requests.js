@@ -12,7 +12,7 @@ async function get_health() {
     return health_status;
 }
 
-async function send_prompts(messages, header) {
+/*async function send_prompts(messages, header) {
     console.log("Sending messages to Groq Chat API:", messages);
     console.log("Sending messages from header:", header);
 
@@ -34,11 +34,37 @@ async function send_prompts(messages, header) {
         return data;
         /*throw new Error(`API request failed with status ${response.status}: ${response.statusText}
             ${await response.text()}`);*/
-    }
+    /*}
 
     const data = await response.json();
     return data;
 
+}*/
+
+async function send_prompts(messages, tags = []) {
+    console.log("Sending messages to Groq Chat API:", messages);
+    console.log("Sending tags:", tags);
+
+    const payload = {
+        message: messages,
+        tags: Array.isArray(tags) ? tags : []
+    }
+
+    const response = await fetch_api(`LLM`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const data = await response.json();
+        return data;
+    }
+
+    const data = await response.json();
+    return data;
 }
 
 async function send_prompts_selected_mode(messages, mode) {

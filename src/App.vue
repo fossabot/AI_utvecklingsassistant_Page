@@ -1,26 +1,16 @@
 <template>
   <div id="app" class="full-page">
     <div  :class="themeClass" class="grid-chat-sidebar min-h-screen transition-colors duration-300">  
-      <Side_bar @room-selected="handleRoomSelected" />
-      <Chat_page  v-if="roomData" 
-                    :room_name="roomData.name" 
-                    :room_history="roomData.history" 
-                    />
+      <Side_bar />
+      <Chat_page />
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, provide, computed, ref } from 'vue'
+import { reactive, provide, computed } from 'vue'
 import Chat_page from './components/chat_page.vue';
 import Side_bar from './components/side_bar.vue';
-
-const roomData = ref(null)
-
-function handleRoomSelected(payload) {
-  // payload contains { name, history }
-  roomData.value = payload
-}
 
 // reactive theme state
 const theme = reactive({
