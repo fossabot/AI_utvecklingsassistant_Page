@@ -23,9 +23,7 @@
                     <button class="copy-btn" @click="copyWrapped(block)">Copy</button>
                     </div>
 
-                    <pre class="code-block p-2 rounded code-message transition-colors" >
-                      <code v-html="block.highlighted"></code>
-                    </pre>
+                    <pre class="code-block p-2 rounded code-message transition-colors" ><code v-html="block.highlighted"></code></pre>
 
                     <details class="raw-toggle p-2 rounded code-message transition-colors">
                     <summary>Show raw / wrapped</summary>
@@ -41,6 +39,7 @@
             <input v-model="userInput" type="text" placeholder="Type your message..." required />
             <button type="submit">Send</button>
         </form>
+        <p class="reminder">AI chatbot can assist with coding, answer code related questions, and provide explanations. Please remember that AI can sometimes make mistakes.</p>
         </div>
     </main>
 </template>
@@ -304,5 +303,13 @@ watch(() => props.room_name, () => {
 .input-form { display:flex; gap:8px; }
 .input-form input[type="text"] { flex:1; padding:8px 10px; border-radius:6px; border:1px solid #ddd; }
 .input-form button { padding:8px 12px; border-radius:6px; border:none; background:#2b6cb0; color:white; cursor:pointer; }
+
+.reminder {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  font-style: italic;
+}
 </style>
 

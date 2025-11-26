@@ -2,12 +2,14 @@
     <aside class="sidebar flex justify-end p-4">
       <div>
         <h2 class="logo">My App</h2>
-        <button
-          @click="toggleTheme"
-          class="px-4 py-2 rounded bg-gray-300 dark:bg-gray-700 text-black dark:text-white transition-colors dl-mode"
-        >
-          {{ theme.dark ? 'Light Mode' : 'Dark Mode' }}
-        </button>
+        <div class="logo">
+          <button
+            @click="toggleTheme"
+            class=" px-4 py-2 rounded bg-gray-300 dark:bg-gray-700 text-black dark:text-white transition-colors dl-mode"
+          >
+            {{ theme.dark ? 'Light Mode' : 'Dark Mode' }}
+          </button>
+        </div>
         <nav>
             <label for="nameBar"></label>
             <input type="text" id="nameBar" v-model="get_room_name_input" placeholder="room name here..."/>
@@ -18,6 +20,7 @@
         </nav>
       </div>
       <div class="mode-selection-box">
+        <h2 class="logo">Quickmode</h2>
         <div class="mode-options">
             <div class="option" 
                 :class="{ active: selectedMode === 'Test' }"
